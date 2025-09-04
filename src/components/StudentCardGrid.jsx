@@ -45,7 +45,9 @@ export default function StudentCardGrid() {
   const [highlightedId, setHighlightedId] = useState(null);
 
   // อ้างอิงเสียง ding
-  const dingSound = useRef(new Audio(import.meta.env.BASE_URL + "ding.mp3"));
+  const audio = new Audio("/ding.mp3");
+audio.play();
+
 
 
   // โหลดคะแนนจาก localStorage
