@@ -1,21 +1,39 @@
-import { useEffect, useState,useRef } from "react";
+import { useEffect, useState, useRef } from "react";
 import confetti from "canvas-confetti"; // 🎆 ไลบรารีพลุ
 import "./StudentCardGrid.css"; // ใช้สำหรับ glow animation
 
 export default function StudentCardGrid() {
   const maxScore = 100;
+  
+  // ✅ เพิ่ม useRef สำหรับเสียง
+  const dingSound = useRef(null);
 
   useEffect(() => {
-  const handleBeforeUnload = (e) => {
-    e.preventDefault();
-    e.returnValue = ""; // บาง browser ต้องใส่เพื่อให้โชว์ popup
-  };
-  window.addEventListener("beforeunload", handleBeforeUnload);
-  return () => {
-    window.removeEventListener("beforeunload", handleBeforeUnload);
-  };
-}, []);
+    const handleBeforeUnload = (e) => {
+      e.preventDefault();
+      e.returnValue = ""; // บาง browser ต้องใส่เพื่อให้โชว์ popup
+    };
+    window.addEventListener("beforeunload", handleBeforeUnload);
+    
+    // ✅ สร้าง audio element และจัดการ error
+    try {
+      dingSound.current = new Audio("/ding.mp3");
+      dingSound.current.preload = "auto";
+      
+      // จัดการ error ถ้าไฟล์เสียงโหลดไม่ได้
+      dingSound.current.onerror = () => {
+        console.warn("ไม่สามารถโหลดไฟล์เสียง ding.mp3 ได้");
+        dingSound.current = null;
+      };
+    } catch (error) {
+      console.warn("ไม่สามารถสร้าง Audio element ได้:", error);
+      dingSound.current = null;
+    }
 
+    return () => {
+      window.removeEventListener("beforeunload", handleBeforeUnload);
+    };
+  }, []);
 
   const avatars = [
     "🐯", "🦁", "🦄", "🐼", "🐸", "🐵", "🐨", "🐰", "🐱",
@@ -44,12 +62,6 @@ export default function StudentCardGrid() {
   const [students, setStudents] = useState(initialStudents);
   const [highlightedId, setHighlightedId] = useState(null);
 
-  // อ้างอิงเสียง ding
-  const audio = new Audio("/ding.mp3");
-audio.play();
-
-
-
   // โหลดคะแนนจาก localStorage
   useEffect(() => {
     const saved = localStorage.getItem("studentScores");
@@ -70,6 +82,20 @@ audio.play();
     localStorage.setItem("studentScores", JSON.stringify(students));
   }, [students]);
 
+  // ✅ ฟังก์ชันเล่นเสียงที่ปลอดภัย
+  const playDingSound = () => {
+    if (dingSound.current) {
+      try {
+        dingSound.current.currentTime = 0;
+        dingSound.current.play().catch(error => {
+          console.warn("ไม่สามารถเล่นเสียงได้:", error);
+        });
+      } catch (error) {
+        console.warn("เกิดข้อผิดพลาดในการเล่นเสียง:", error);
+      }
+    }
+  };
+
   // เพิ่ม/ลดคะแนน + highlight card
   const handleScore = (id, delta) => {
     setStudents(prev =>
@@ -85,10 +111,10 @@ audio.play();
 
     setHighlightedId(id);
     setTimeout(() => setHighlightedId(null), 2000);
-    // เล่นเสียงตอนกด +
-    if (delta > 0 && dingSound.current) {
-      dingSound.current.currentTime = 0; // รีเซ็ตให้เล่นใหม่ทุกครั้ง
-      dingSound.current.play();
+    
+    // ✅ เล่นเสียงตอนกด + (แก้ไขแล้ว)
+    if (delta > 0) {
+      playDingSound();
     }
 
     // 🎆 ยิงพลุถ้าเป็นการเพิ่มคะแนน
